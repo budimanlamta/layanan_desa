@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layanan Surat Desa</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --hijau-tua:#1B4332;
+    --hijau-daun:#40916C;
+    --hijau-muda:#95D5B2;
+    --emas:#B8901E;
+    --kertas:#FBF9F4;
+    --tinta:#1F2421;
+    --merah-cap:#9B2C2C;
+    --abu-panel:#EFEDE6;
+    --garis:#D8D3C4;
+    --putih:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:"Segoe UI", Arial, Helvetica, sans-serif;
+    background:var(--abu-panel); color:var(--tinta); min-height:100vh;
+  }
+  .layout{display:flex; min-height:100vh;}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{
+    width:230px; flex-shrink:0; background:var(--hijau-tua); color:var(--putih);
+    display:flex; flex-direction:column; padding:22px 0;
+  }
+  .sidebar .brand{padding:0 20px 20px; border-bottom:1px solid rgba(255,255,255,.15); margin-bottom:10px;}
+  .sidebar .brand .logo-wrap{
+    width:44px;height:44px;border-radius:50%;background:var(--emas);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;
+  }
+  .sidebar .brand .logo-wrap img{width:100%;height:100%;object-fit:cover;}
+  .sidebar .brand .logo-wrap span{font-size:20px;font-weight:700;color:var(--hijau-tua);}
+  .sidebar .brand h1{font-size:15px; margin:0 0 2px; font-weight:700; letter-spacing:.3px;}
+  .sidebar .brand p{font-size:11.5px; margin:0; opacity:.75;}
+  .nav-item{
+    padding:12px 20px; cursor:pointer; font-size:14px; border-left:3px solid transparent;
+    opacity:.82; display:flex; align-items:center; gap:10px;
+  }
+  .nav-item:hover{background:rgba(255,255,255,.06); opacity:1;}
+  .nav-item.active{background:rgba(255,255,255,.1); border-left-color:var(--emas); opacity:1; font-weight:600;}
+  .nav-section-label{
+    font-size:10.5px; text-transform:uppercase; letter-spacing:1px; opacity:.55;
+    padding:16px 20px 4px;
+  }
+  .nav-item .dot{width:6px;height:6px;border-radius:50%;background:var(--hijau-muda);flex-shrink:0;}
+
+  /* ---------- MAIN ---------- */
+  main{flex:1; padding:32px 40px; max-width:1100px;}
+  .page-head{margin-bottom:24px;}
+  .page-head h2{margin:0 0 4px; font-size:22px; color:var(--hijau-tua);}
+  .page-head p{margin:0; font-size:13.5px; color:#5b5b52;}
+
+  .panel{
+    background:var(--putih); border:1px solid var(--garis); border-radius:4px;
+    padding:24px; margin-bottom:20px;
+  }
+  .panel h3{margin:0 0 14px; font-size:15px; color:var(--hijau-tua); border-bottom:1px solid var(--garis); padding-bottom:10px;}
+
+  label{display:block; font-size:12.5px; font-weight:600; color:#3d3d36; margin-bottom:5px;}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width:100%; padding:9px 11px; border:1px solid #C9C4B4; border-radius:3px;
+    font-size:13.5px; font-family:inherit; background:#fff; color:var(--tinta);
+  }
+  textarea{resize:vertical; min-height:60px;}
+  .field{margin-bottom:14px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;}
+
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:3px;
+    padding:10px 18px; font-size:13.5px; font-weight:600;
+  }
+  .btn-utama{background:var(--hijau-tua); color:#fff;}
+  .btn-utama:hover{background:#143a29;}
+  .btn-emas{background:var(--emas); color:#fff;}
+  .btn-emas:hover{background:#a17c19;}
+  .btn-garis{background:transparent; color:var(--hijau-tua); border:1px solid var(--hijau-tua);}
+  .btn-garis:hover{background:#f1f6f3;}
+  .btn-bahaya{background:transparent; color:var(--merah-cap); border:1px solid var(--merah-cap); padding:6px 12px; font-size:12px;}
+
+  .nik-search{display:flex; gap:10px;}
+  .nik-search input{flex:1;}
+
+  .kartu-warga{
+    margin-top:16px; padding:16px; background:#F6FBF8; border:1px solid var(--hijau-muda);
+    border-radius:4px; font-size:13.5px; display:none;
+  }
+  .kartu-warga.tampil{display:block;}
+  .kartu-warga .baris{display:flex; padding:3px 0;}
+  .kartu-warga .baris .k{width:170px; color:#556; font-weight:600;}
+  .kartu-warga .baris .v{flex:1;}
+  .pesan-gagal{
+    margin-top:14px; padding:12px 14px; background:#FDF1F0; border:1px solid #E3B3AE;
+    color:var(--merah-cap); border-radius:4px; font-size:13px; display:none;
+  }
+  .pesan-gagal.tampil{display:block;}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  th,td{padding:9px 10px; border-bottom:1px solid var(--garis); text-align:left;}
+  th{background:#F5F3EC; font-size:11.5px; text-transform:uppercase; letter-spacing:.4px; color:#5b5b52;}
+  tr:hover td{background:#FAFAF6;}
+
+  .upload-row{display:flex; align-items:center; gap:14px; margin-bottom:6px;}
+  .preview-kecil{
+    width:70px; height:70px; border:1px dashed #bbb; border-radius:4px; display:flex;
+    align-items:center; justify-content:center; overflow:hidden; background:#faf9f5; flex-shrink:0;
+  }
+  .preview-kecil img{width:100%; height:100%; object-fit:contain;}
+  .preview-kecil.ttd, .preview-kecil.cap{width:100px;height:60px;}
+  .catatan{font-size:12px; color:#7a7a6e; margin-top:4px;}
+
+  /* ---------- MODAL ---------- */
+  .modal-bg{
+    position:fixed; inset:0; background:rgba(20,20,15,.55); display:none;
+    align-items:flex-start; justify-content:center; padding:30px 15px; overflow:auto; z-index:50;
+  }
+  .modal-bg.tampil{display:flex;}
+  .modal-box{
+    background:#fff; border-radius:6px; width:100%; max-width:480px; padding:22px;
+  }
+  .modal-box h3{margin-top:0; color:var(--hijau-tua);}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:18px;}
+
+  /* ---------- SURAT PREVIEW ---------- */
+  #overlay-surat{
+    position:fixed; inset:0; background:rgba(20,20,15,.6); display:none;
+    align-items:flex-start; justify-content:center; padding:26px 12px; overflow:auto; z-index:60;
+  }
+  #overlay-surat.tampil{display:flex;}
+  .toolbar-surat{
+    position:sticky; top:0; display:flex; justify-content:center; gap:10px; margin-bottom:14px;
+  }
+  #kertas-surat{
+    background:var(--kertas); width:210mm; min-height:297mm; padding:20mm 18mm;
+    font-family:Georgia,'Times New Roman',serif; color:#161613; font-size:13px; line-height:1.65;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .kop-surat{display:flex; align-items:center; gap:16px; border-bottom:4px double var(--hijau-tua); padding-bottom:10px; margin-bottom:22px;}
+  .kop-surat .logo-desa{width:70px; height:70px; flex-shrink:0; display:flex; align-items:center; justify-content:center;}
+  .kop-surat .logo-desa img{width:100%; height:100%; object-fit:contain;}
+  .kop-surat .teks-kop{flex:1; text-align:center;}
+  .kop-surat .teks-kop .p1{font-size:14px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;}
+  .kop-surat .teks-kop .p2{font-size:14px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;}
+  .kop-surat .teks-kop .p3{font-size:19px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--hijau-tua);}
+  .kop-surat .teks-kop .p4{font-size:11.5px; margin-top:2px;}
+  .judul-surat{text-align:center; margin-bottom:22px;}
+  .judul-surat .j1{font-size:14.5px; font-weight:700; text-decoration:underline; text-underline-offset:4px; text-transform:uppercase;}
+  .judul-surat .j2{font-size:12.5px; margin-top:2px;}
+  .isi-surat p{margin:0 0 12px; text-align:justify;}
+  .tabel-data{width:100%; margin:6px 0 14px; border-collapse:collapse;}
+  .tabel-data td{padding:2px 6px; vertical-align:top; font-size:13px;}
+  .tabel-data td.label{width:34%;}
+  .tabel-data td.titik{width:14px;}
+  .blok-ttd{display:flex; justify-content:flex-end; margin-top:26px;}
+  .blok-ttd .kolom{width:230px; text-align:center; position:relative;}
+  .blok-ttd .tempat-tgl{margin-bottom:4px;}
+  .blok-ttd .jabatan{margin-bottom:4px;}
+  .area-ttd{height:80px; position:relative; display:flex; align-items:center; justify-content:center;}
+  .area-ttd img.ttd{max-height:70px; max-width:180px; position:relative; z-index:2;}
+  .area-ttd img.cap{
+    position:absolute; max-height:110px; max-width:110px; opacity:.9; z-index:1;
+    left:50%; top:50%; transform:translate(-58%,-45%) rotate(-8deg);
+  }
+  .nama-ttd{font-weight:700; text-decoration:underline; text-underline-offset:3px; margin-top:2px;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #overlay-surat, #overlay-surat *{visibility:visible;}
+    #overlay-surat{position:absolute; inset:auto; padding:0; background:#fff;}
+    .toolbar-surat{display:none;}
+    #kertas-surat{box-shadow:none; width:auto; min-height:auto;}
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="logo-wrap"><span id="inisialDesa">D</span><img id="logoDesaMini" style="display:none;"></div>
+      <h1 id="namaDesaSidebar">Desa Contoh</h1>
+      <p>Layanan Surat Online</p>
+    </div>
+
+    <div class="nav-section-label">Warga</div>
+    <div class="nav-item active" data-tab="warga"><span class="dot"></span> Layanan Warga</div>
+
+    <div class="nav-section-label">Administrasi <span style="opacity:.6;">(perlu login)</span></div>
+    <div class="nav-item" data-tab="penduduk"><span class="dot"></span> 🔒 Data Penduduk</div>
+    <div class="nav-item" data-tab="pengaturan"><span class="dot"></span> 🔒 Pengaturan Desa</div>
+    <div class="nav-item" id="btnLogout" style="display:none; border-top:1px solid rgba(255,255,255,.15); margin-top:10px; opacity:.85;" onclick="logoutAdmin()"><span class="dot" style="background:#E39B9B;"></span> Keluar dari Admin</div>
+  </div>
+
+  <!-- ===================== MAIN ===================== -->
+  <main>
+
+    <!-- ---------- TAB: LAYANAN WARGA ---------- -->
+    <section id="tab-warga">
+      <div class="page-head">
+        <h2>Layanan Surat Warga</h2>
+        <p>Masukkan NIK untuk mengambil data kependudukan, lalu pilih jenis surat yang diperlukan.</p>
+      </div>
+
+      <div class="panel">
+        <h3>1. Cari Data Warga</h3>
+        <div class="nik-search">
+          <input type="text" id="inputNIK" placeholder="Masukkan 16 digit NIK" maxlength="16">
+          <button class="btn-utama" onclick="cariNIK()">Cari</button>
+        </div>
+        <div class="pesan-gagal" id="pesanGagalNIK">NIK tidak ditemukan dalam Data Penduduk. Silakan tambahkan data warga ini terlebih dahulu di menu <strong>Data Penduduk</strong>.</div>
+        <div class="kartu-warga" id="kartuWarga"></div>
+      </div>
+
+      <div class="panel" id="panelPilihSurat" style="display:none;">
+        <h3>2. Pilih Jenis Surat</h3>
+        <div class="field">
+          <label>Jenis Surat / Keperluan</label>
+          <select id="pilihJenisSurat" onchange="renderFieldTambahan()">
+            <option value="">-- Pilih jenis surat --</option>
+            <option value="domisili">Surat Keterangan Domisili</option>
+            <option value="usaha">Surat Keterangan Usaha</option>
+            <option value="tidak_mampu">Surat Keterangan Tidak Mampu (SKTM)</option>
+            <option value="pengantar">Surat Pengantar (KTP/KK/SKCK/Nikah, dll)</option>
+            <option value="kelahiran">Surat Keterangan Kelahiran</option>
+            <option value="kematian">Surat Keterangan Kematian</option>
+          </select>
+        </div>
+        <div id="fieldTambahan"></div>
+        <button class="btn-emas" onclick="buatSurat()">Buat &amp; Tampilkan Surat</button>
+      </div>
+    </section>
+
+    <!-- ---------- TAB: DATA PENDUDUK ---------- -->
+    <section id="tab-penduduk" style="display:none;">
+      <div class="page-head">
+        <h2>Data Penduduk</h2>
+        <p>Data ini menjadi sumber otomatis untuk pengisian surat. Kelola data warga desa di sini.</p>
+      </div>
+      <div class="panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
+          <input type="text" id="cariTabelPenduduk" placeholder="Cari nama / NIK..." style="max-width:260px;" oninput="renderTabelPenduduk()">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-garis" onclick="unduhTemplateExcel()">⬇ Unduh Template Excel</button>
+            <button class="btn-garis" onclick="document.getElementById('inputImporExcel').click()">⬆ Impor dari Excel</button>
+            <input type="file" id="inputImporExcel" accept=".xlsx,.xls,.csv" style="display:none;" onchange="imporExcel(this)">
+            <button class="btn-utama" onclick="bukaModalPenduduk()">+ Tambah Warga</button>
+          </div>
+        </div>
+        <p class="catatan" style="margin:-4px 0 12px;">Unduh template terlebih dahulu agar urutan dan nama kolom sesuai, lalu isi dan unggah kembali. Data dengan NIK yang sudah ada akan diperbarui; NIK baru akan ditambahkan.</p>
+        <div id="ringkasanImpor" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:4px; font-size:13px;"></div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead><tr>
+              <th>NIK</th><th>Nama</th><th>Tempat, Tgl Lahir</th><th>Alamat</th><th>Aksi</th>
+            </tr></thead>
+            <tbody id="tbodyPenduduk"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- TAB: PENGATURAN DESA ---------- -->
+    <section id="tab-pengaturan" style="display:none;">
+      <div class="page-head">
+        <h2>Pengaturan Desa</h2>
+        <p>Data ini akan tampil pada kop surat, tanda tangan, dan cap resmi setiap surat yang dibuat.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Identitas Desa</h3>
+        <div class="row2">
+          <div class="field"><label>Nama Desa</label><input type="text" id="setNamaDesa"></div>
+          <div class="field"><label>Kode Singkat Desa (untuk nomor surat)</label><input type="text" id="setKodeDesa" placeholder="cth: SKW"></div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>Kecamatan</label><input type="text" id="setKecamatan"></div>
+          <div class="field"><label>Kabupaten/Kota</label><input type="text" id="setKabupaten"></div>
+          <div class="field"><label>Provinsi</label><input type="text" id="setProvinsi"></div>
+        </div>
+        <div class="field"><label>Alamat Kantor Desa</label><input type="text" id="setAlamatKantor" placeholder="Jl. ..., Kode Pos ..."></div>
+        <div class="row2">
+          <div class="field"><label>Nama Kepala Desa</label><input type="text" id="setNamaKades"></div>
+          <div class="field"><label>Jabatan pada Tanda Tangan</label><input type="text" id="setJabatanKades" value="Kepala Desa"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Logo, Tanda Tangan &amp; Cap Kepala Desa</h3>
+
+        <div class="field">
+          <label>Logo Desa (opsional)</label>
+          <div class="upload-row">
+            <div class="preview-kecil"><img id="prevLogo" style="display:none;"></div>
+            <input type="file" accept="image/*" onchange="unggahGambar(this,'logoDesa','prevLogo')">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tanda Tangan Kepala Desa</label>
+          <div class="upload-row">
+            <div class="preview-kecil ttd"><img id="prevTtd" style="display:none;"></div>
+            <input type="file" accept="image/*" onchange="unggahGambar(this,'ttdKades','prevTtd')">
+          </div>
+          <p class="catatan">Gunakan foto/scan tanda tangan dengan latar putih atau transparan (PNG) agar hasil lebih rapi.</p>
+        </div>
+
+        <div class="field">
+          <label>Cap / Stempel Desa</label>
+          <div class="upload-row">
+            <div class="preview-kecil cap"><img id="prevCap" style="display:none;"></div>
+            <input type="file" accept="image/*" onchange="unggahGambar(this,'capDesa','prevCap')">
+          </div>
+          <p class="catatan">Disarankan gambar PNG latar transparan agar cap terlihat menyatu di atas tanda tangan.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Nomor Surat</h3>
+        <div class="field">
+          <label>Nomor urut surat berikutnya</label>
+          <input type="number" id="setNomorUrut" min="1">
+        </div>
+        <p class="catatan">Format otomatis: <em>[kode-jenis]/[nomor-urut]/[kode-desa]/[bulan-romawi]/[tahun]</em>. Sesuaikan kode klasifikasi surat dengan tata naskah desa Anda apabila diperlukan.</p>
+      </div>
+
+      <div class="panel">
+        <h3>Akun Admin</h3>
+        <p class="catatan" style="margin-top:-4px;">Username &amp; kata sandi ini yang dipakai untuk masuk ke menu Data Penduduk dan Pengaturan Desa. Segera ganti kata sandi bawaan (<em>admin / admin123</em>) setelah login pertama.</p>
+        <div class="row2">
+          <div class="field"><label>Username Admin</label><input type="text" id="setAdminUser"></div>
+          <div class="field"><label>Kata Sandi Baru</label><input type="password" id="setAdminPass" placeholder="Kosongkan bila tidak diubah" autocomplete="new-password"></div>
+        </div>
+        <div class="field" style="max-width:calc(50% - 7px);"><label>Konfirmasi Kata Sandi Baru</label><input type="password" id="setAdminPassKonfirmasi" autocomplete="new-password"></div>
+        <button class="btn-emas" onclick="simpanKataSandiAdmin()">Simpan Akun Admin</button>
+        <p class="catatan">⚠️ Ini adalah proteksi sederhana di sisi tampilan (bukan sistem keamanan server). Cukup untuk mencegah warga biasa mengubah data secara tidak sengaja, namun bukan perlindungan terhadap pengguna yang paham teknis dan membuka source code halaman. Jangan gunakan kata sandi yang juga dipakai untuk akun penting lain.</p>
+      </div>
+
+      <button class="btn-utama" onclick="simpanPengaturan()">Simpan Pengaturan</button>
+      <span id="labelTersimpan" style="margin-left:10px; font-size:13px; color:var(--hijau-daun); display:none;">✓ Tersimpan</span>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===================== MODAL TAMBAH/EDIT PENDUDUK ===================== -->
+<div class="modal-bg" id="modalPenduduk">
+  <div class="modal-box">
+    <h3 id="judulModalPenduduk">Tambah Warga</h3>
+    <input type="hidden" id="editIndexPenduduk" value="-1">
+    <div class="field"><label>NIK (16 digit)</label><input type="text" id="fNik" maxlength="16"></div>
+    <div class="field"><label>Nama Lengkap</label><input type="text" id="fNama"></div>
+    <div class="row2">
+      <div class="field"><label>Tempat Lahir</label><input type="text" id="fTempatLahir"></div>
+      <div class="field"><label>Tanggal Lahir</label><input type="date" id="fTglLahir"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Jenis Kelamin</label>
+        <select id="fJk"><option>Laki-laki</option><option>Perempuan</option></select>
+      </div>
+      <div class="field"><label>Pekerjaan</label><input type="text" id="fPekerjaan"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Agama</label><input type="text" id="fAgama"></div>
+      <div class="field"><label>Status Perkawinan</label>
+        <select id="fStatus"><option>Belum Kawin</option><option>Kawin</option><option>Cerai Hidup</option><option>Cerai Mati</option></select>
+      </div>
+    </div>
+    <div class="field"><label>Alamat Lengkap (RT/RW, Dusun)</label><textarea id="fAlamat"></textarea></div>
+    <div class="field"><label>Nama Ayah</label><input type="text" id="fAyah"></div>
+    <div class="field"><label>Nama Ibu</label><input type="text" id="fIbu"></div>
+    <div class="modal-actions">
+      <button class="btn-garis" onclick="tutupModalPenduduk()">Batal</button>
+      <button class="btn-utama" onclick="simpanPenduduk()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL LOGIN ADMIN ===================== -->
+<div class="modal-bg" id="modalLogin">
+  <div class="modal-box">
+    <h3>Login Admin</h3>
+    <p style="font-size:12.5px; color:#6b6b60; margin-top:-8px;">Halaman ini hanya untuk perangkat desa/Kepala Desa/Sekretaris Desa. Masukkan username dan kata sandi admin.</p>
+    <div class="field"><label>Username</label><input type="text" id="inLoginUser" autocomplete="username"></div>
+    <div class="field">
+      <label>Kata Sandi</label>
+      <input type="password" id="inLoginPass" autocomplete="current-password" onkeydown="if(event.key==='Enter') prosesLogin()">
+    </div>
+    <div class="pesan-gagal tampil" id="errLogin" style="display:none;">Username atau kata sandi salah. Silakan coba lagi.</div>
+    <div class="modal-actions">
+      <button class="btn-garis" onclick="tutupModalLogin()">Batal</button>
+      <button class="btn-utama" onclick="prosesLogin()">Masuk</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== OVERLAY SURAT ===================== -->
+<div id="overlay-surat">
+  <div>
+    <div class="toolbar-surat no-print">
+      <button class="btn-utama" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button>
+      <button class="btn-garis" onclick="tutupSurat()">Tutup</button>
+    </div>
+    <div id="kertas-surat"></div>
+  </div>
+</div>
+
+<script>
+/* =============================================================
+   PENYIMPANAN DATA (localStorage) — untuk demo/draft.
+   Pada implementasi produksi, ganti dengan database & backend
+   desa (mis. server desa / aplikasi SID) agar data tidak hanya
+   tersimpan di satu perangkat/browser.
+============================================================= */
+const KEY_SETTINGS = 'desa_settings_v1';
+const KEY_PENDUDUK = 'desa_penduduk_v1';
+
+function defaultSettings(){
+  return {
+    namaDesa:'Desa Contoh', kodeDesa:'DC', kecamatan:'Kecamatan Contoh',
+    kabupaten:'Kabupaten Contoh', provinsi:'Provinsi Contoh',
+    alamatKantor:'Jl. Raya Desa No. 1, Kode Pos 00000',
+    namaKades:'(Nama Kepala Desa)', jabatanKades:'Kepala Desa',
+    logoDesa:'', ttdKades:'', capDesa:'', nomorUrut:1
+  };
+}
+function ambilSettings(){
+  const s = localStorage.getItem(KEY_SETTINGS);
+  return s ? JSON.parse(s) : defaultSettings();
+}
+function simpanSettingsKeStorage(obj){ localStorage.setItem(KEY_SETTINGS, JSON.stringify(obj)); }
+
+function contohPenduduk(){
+  return [
+    {nik:'3201012501900001', nama:'Ahmad Sudrajat', tempatLahir:'Karawang', tglLahir:'1990-01-25',
+     jk:'Laki-laki', pekerjaan:'Wiraswasta', agama:'Islam', status:'Kawin',
+     alamat:'Dusun Mekar RT 02 RW 04', ayah:'Sudrajat', ibu:'Siti Aminah'},
+    {nik:'3201014503880002', nama:'Rina Marlina', tempatLahir:'Purwakarta', tglLahir:'1988-03-15',
+     jk:'Perempuan', pekerjaan:'Guru', agama:'Islam', status:'Kawin',
+     alamat:'Dusun Sukamaju RT 01 RW 02', ayah:'Endang', ibu:'Yayah'}
+  ];
+}
+function ambilPenduduk(){
+  const s = localStorage.getItem(KEY_PENDUDUK);
+  if(s) return JSON.parse(s);
+  const c = contohPenduduk();
+  localStorage.setItem(KEY_PENDUDUK, JSON.stringify(c));
+  return c;
+}
+function simpanPendudukKeStorage(arr){ localStorage.setItem(KEY_PENDUDUK, JSON.stringify(arr)); }
+
+let settings = ambilSettings();
+let daftarPenduduk = ambilPenduduk();
+let wargaTerpilih = null;
+
+/* =============================================================
+   AUTENTIKASI ADMIN
+   CATATAN KEAMANAN: ini proteksi sisi-tampilan (client-side) saja,
+   berjalan sepenuhnya di browser tanpa server. Cukup untuk mencegah
+   warga awam mengubah data secara tidak sengaja, TAPI bukan sistem
+   keamanan sungguhan — pengguna yang membuka "View Source"/DevTools
+   browser tetap bisa melihat kredensial di localStorage atau
+   melewati pemeriksaan ini. Untuk keamanan data penduduk yang
+   sesungguhnya (mis. sesuai kepatuhan perlindungan data pribadi),
+   diperlukan login yang diverifikasi oleh server/database, bukan
+   hanya oleh kode di browser.
+============================================================= */
+const KEY_ADMIN = 'desa_admin_v1';
+const KEY_SESI_ADMIN = 'desa_admin_sesi_v1';
+function defaultAdmin(){ return {username:'admin', password:'admin123'}; }
+function ambilAdmin(){
+  const s = localStorage.getItem(KEY_ADMIN);
+  return s ? JSON.parse(s) : defaultAdmin();
+}
+function simpanAdminKeStorage(obj){ localStorage.setItem(KEY_ADMIN, JSON.stringify(obj)); }
+
+let adminAkun = ambilAdmin();
+let sudahLoginAdmin = sessionStorage.getItem(KEY_SESI_ADMIN) === '1';
+let tabSetelahLogin = null;
+
+function tabButuhLogin(tab){ return tab==='penduduk' || tab==='pengaturan'; }
+
+function bukaModalLogin(){
+  document.getElementById('errLogin').style.display='none';
+  document.getElementById('inLoginUser').value='';
+  document.getElementById('inLoginPass').value='';
+  document.getElementById('modalLogin').classList.add('tampil');
+  setTimeout(()=>document.getElementById('inLoginUser').focus(), 50);
+}
+function tutupModalLogin(){
+  document.getElementById('modalLogin').classList.remove('tampil');
+  tabSetelahLogin = null;
+}
+function prosesLogin(){
+  const u = document.getElementById('inLoginUser').value.trim();
+  const p = document.getElementById('inLoginPass').value;
+  if(u === adminAkun.username && p === adminAkun.password){
+    sudahLoginAdmin = true;
+    sessionStorage.setItem(KEY_SESI_ADMIN, '1');
+    document.getElementById('modalLogin').classList.remove('tampil');
+    document.getElementById('btnLogout').style.display='flex';
+    const tujuan = tabSetelahLogin || 'penduduk';
+    tabSetelahLogin = null;
+    pindahKeTab(tujuan);
+  } else {
+    document.getElementById('errLogin').style.display='block';
+  }
+}
+function logoutAdmin(){
+  sudahLoginAdmin = false;
+  sessionStorage.removeItem(KEY_SESI_ADMIN);
+  document.getElementById('btnLogout').style.display='none';
+  pindahKeTab('warga');
+}
+function simpanKataSandiAdmin(){
+  const u = document.getElementById('setAdminUser').value.trim();
+  const p1 = document.getElementById('setAdminPass').value;
+  const p2 = document.getElementById('setAdminPassKonfirmasi').value;
+  if(!u){ alert('Username tidak boleh kosong.'); return; }
+  if(p1 === '' && p2 === ''){
+    // hanya mengubah username, kata sandi tetap
+    adminAkun.username = u;
+    simpanAdminKeStorage(adminAkun);
+    alert('Username admin berhasil diperbarui.');
+    return;
+  }
+  if(p1.length < 6){ alert('Kata sandi baru minimal 6 karakter.'); return; }
+  if(p1 !== p2){ alert('Konfirmasi kata sandi tidak sama dengan kata sandi baru.'); return; }
+  adminAkun = {username:u, password:p1};
+  simpanAdminKeStorage(adminAkun);
+  document.getElementById('setAdminPass').value='';
+  document.getElementById('setAdminPassKonfirmasi').value='';
+  alert('Username & kata sandi admin berhasil diperbarui. Gunakan kredensial baru ini saat login berikutnya.');
+}
+
+/* =============================================================
+   NAVIGASI TAB
+============================================================= */
+function pindahKeTab(tab){
+  document.querySelectorAll('.nav-item[data-tab]').forEach(x=>x.classList.toggle('active', x.dataset.tab===tab));
+  document.querySelectorAll('main > section').forEach(s=>s.style.display='none');
+  document.getElementById('tab-'+tab).style.display='block';
+  if(tab==='penduduk') renderTabelPenduduk();
+  if(tab==='pengaturan') muatFormPengaturan();
+}
+document.querySelectorAll('.nav-item[data-tab]').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const tab = el.dataset.tab;
+    if(tabButuhLogin(tab) && !sudahLoginAdmin){
+      tabSetelahLogin = tab;
+      bukaModalLogin();
+      return;
+    }
+    pindahKeTab(tab);
+  });
+});
+if(sudahLoginAdmin){ document.getElementById('btnLogout').style.display='flex'; }
+
+/* =============================================================
+   PENGATURAN DESA
+============================================================= */
+function muatFormPengaturan(){
+  document.getElementById('setAdminUser').value = adminAkun.username;
+  document.getElementById('setAdminPass').value = '';
+  document.getElementById('setAdminPassKonfirmasi').value = '';
+  document.getElementById('setNamaDesa').value = settings.namaDesa;
+  document.getElementById('setKodeDesa').value = settings.kodeDesa;
+  document.getElementById('setKecamatan').value = settings.kecamatan;
+  document.getElementById('setKabupaten').value = settings.kabupaten;
+  document.getElementById('setProvinsi').value = settings.provinsi;
+  document.getElementById('setAlamatKantor').value = settings.alamatKantor;
+  document.getElementById('setNamaKades').value = settings.namaKades;
+  document.getElementById('setJabatanKades').value = settings.jabatanKades;
+  document.getElementById('setNomorUrut').value = settings.nomorUrut;
+  tampilkanPreview('prevLogo', settings.logoDesa);
+  tampilkanPreview('prevTtd', settings.ttdKades);
+  tampilkanPreview('prevCap', settings.capDesa);
+  perbaruiSidebarBrand();
+}
+function tampilkanPreview(idImg, dataUrl){
+  const img = document.getElementById(idImg);
+  if(dataUrl){ img.src = dataUrl; img.style.display='block'; } else { img.style.display='none'; }
+}
+function unggahGambar(input, field, idPreview){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    settings[field] = e.target.result;
+    tampilkanPreview(idPreview, e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+function simpanPengaturan(){
+  settings.namaDesa = document.getElementById('setNamaDesa').value.trim() || 'Desa Contoh';
+  settings.kodeDesa = document.getElementById('setKodeDesa').value.trim() || 'DS';
+  settings.kecamatan = document.getElementById('setKecamatan').value.trim();
+  settings.kabupaten = document.getElementById('setKabupaten').value.trim();
+  settings.provinsi = document.getElementById('setProvinsi').value.trim();
+  settings.alamatKantor = document.getElementById('setAlamatKantor').value.trim();
+  settings.namaKades = document.getElementById('setNamaKades').value.trim();
+  settings.jabatanKades = document.getElementById('setJabatanKades').value.trim() || 'Kepala Desa';
+  settings.nomorUrut = parseInt(document.getElementById('setNomorUrut').value) || 1;
+  simpanSettingsKeStorage(settings);
+  perbaruiSidebarBrand();
+  const lbl = document.getElementById('labelTersimpan');
+  lbl.style.display='inline'; setTimeout(()=>lbl.style.display='none', 2000);
+}
+function perbaruiSidebarBrand(){
+  document.getElementById('namaDesaSidebar').innerText = settings.namaDesa;
+  document.getElementById('inisialDesa').innerText = (settings.namaDesa||'D').trim().charAt(0).toUpperCase();
+  const img = document.getElementById('logoDesaMini');
+  if(settings.logoDesa){ img.src=settings.logoDesa; img.style.display='block'; document.getElementById('inisialDesa').style.display='none'; }
+}
+perbaruiSidebarBrand();
+
+/* =============================================================
+   DATA PENDUDUK — CRUD
+============================================================= */
+function renderTabelPenduduk(){
+  const kw = (document.getElementById('cariTabelPenduduk').value||'').toLowerCase();
+  const tbody = document.getElementById('tbodyPenduduk');
+  tbody.innerHTML='';
+  daftarPenduduk.forEach((p, i)=>{
+    if(kw && !(p.nik.includes(kw) || p.nama.toLowerCase().includes(kw))) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.nik}</td><td>${p.nama}</td><td>${p.tempatLahir}, ${formatTanggal(p.tglLahir)}</td><td>${p.alamat}</td>
+      <td>
+        <button class="btn-garis" style="padding:5px 10px;font-size:12px;" onclick="bukaModalPenduduk(${i})">Ubah</button>
+        <button class="btn-bahaya" onclick="hapusPenduduk(${i})">Hapus</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+function bukaModalPenduduk(index=-1){
+  document.getElementById('editIndexPenduduk').value = index;
+  const kosong = {nik:'',nama:'',tempatLahir:'',tglLahir:'',jk:'Laki-laki',pekerjaan:'',agama:'',status:'Belum Kawin',alamat:'',ayah:'',ibu:''};
+  const p = index>=0 ? daftarPenduduk[index] : kosong;
+  document.getElementById('judulModalPenduduk').innerText = index>=0 ? 'Ubah Data Warga' : 'Tambah Warga';
+  document.getElementById('fNik').value=p.nik;
+  document.getElementById('fNama').value=p.nama;
+  document.getElementById('fTempatLahir').value=p.tempatLahir;
+  document.getElementById('fTglLahir').value=p.tglLahir;
+  document.getElementById('fJk').value=p.jk;
+  document.getElementById('fPekerjaan').value=p.pekerjaan;
+  document.getElementById('fAgama').value=p.agama;
+  document.getElementById('fStatus').value=p.status;
+  document.getElementById('fAlamat').value=p.alamat;
+  document.getElementById('fAyah').value=p.ayah;
+  document.getElementById('fIbu').value=p.ibu;
+  document.getElementById('modalPenduduk').classList.add('tampil');
+}
+function tutupModalPenduduk(){ document.getElementById('modalPenduduk').classList.remove('tampil'); }
+function simpanPenduduk(){
+  const nik = document.getElementById('fNik').value.trim();
+  if(!/^\d{16}$/.test(nik)){ alert('NIK harus terdiri dari 16 digit angka.'); return; }
+  const data = {
+    nik, nama: document.getElementById('fNama').value.trim(),
+    tempatLahir: document.getElementById('fTempatLahir').value.trim(),
+    tglLahir: document.getElementById('fTglLahir').value,
+    jk: document.getElementById('fJk').value,
+    pekerjaan: document.getElementById('fPekerjaan').value.trim(),
+    agama: document.getElementById('fAgama').value.trim(),
+    status: document.getElementById('fStatus').value,
+    alamat: document.getElementById('fAlamat').value.trim(),
+    ayah: document.getElementById('fAyah').value.trim(),
+    ibu: document.getElementById('fIbu').value.trim(),
+  };
+  const idx = parseInt(document.getElementById('editIndexPenduduk').value);
+  if(idx>=0){ daftarPenduduk[idx]=data; } else { daftarPenduduk.push(data); }
+  simpanPendudukKeStorage(daftarPenduduk);
+  tutupModalPenduduk();
+  renderTabelPenduduk();
+}
+function hapusPenduduk(index){
+  if(confirm('Hapus data warga ini?')){
+    daftarPenduduk.splice(index,1);
+    simpanPendudukKeStorage(daftarPenduduk);
+    renderTabelPenduduk();
+  }
+}
+
+/* =============================================================
+   IMPOR / TEMPLATE EXCEL DATA PENDUDUK
+   Menggunakan pustaka SheetJS (xlsx). Kolom pada file Excel/CSV
+   dicocokkan berdasarkan nama header (tidak peka huruf besar/kecil),
+   jadi urutan kolom boleh berbeda selama nama headernya sesuai.
+============================================================= */
+const KOLOM_TEMPLATE = [
+  'NIK','Nama Lengkap','Tempat Lahir','Tanggal Lahir (YYYY-MM-DD)','Jenis Kelamin',
+  'Pekerjaan','Agama','Status Perkawinan','Alamat Lengkap','Nama Ayah','Nama Ibu'
+];
+// pemetaan nama header (huruf kecil) -> field internal
+const PEMETAAN_HEADER = {
+  'nik':'nik',
+  'nama lengkap':'nama', 'nama':'nama',
+  'tempat lahir':'tempatLahir',
+  'tanggal lahir (yyyy-mm-dd)':'tglLahir', 'tanggal lahir':'tglLahir', 'tgl lahir':'tglLahir',
+  'jenis kelamin':'jk', 'jk':'jk',
+  'pekerjaan':'pekerjaan',
+  'agama':'agama',
+  'status perkawinan':'status', 'status':'status',
+  'alamat lengkap':'alamat', 'alamat':'alamat',
+  'nama ayah':'ayah', 'ayah':'ayah',
+  'nama ibu':'ibu', 'ibu':'ibu'
+};
+
+function unduhTemplateExcel(){
+  const contoh = [{
+    'NIK':'3201012501900001','Nama Lengkap':'Ahmad Sudrajat','Tempat Lahir':'Karawang',
+    'Tanggal Lahir (YYYY-MM-DD)':'1990-01-25','Jenis Kelamin':'Laki-laki','Pekerjaan':'Wiraswasta',
+    'Agama':'Islam','Status Perkawinan':'Kawin','Alamat Lengkap':'Dusun Mekar RT 02 RW 04',
+    'Nama Ayah':'Sudrajat','Nama Ibu':'Siti Aminah'
+  }];
+  const ws = XLSX.utils.json_to_sheet(contoh, {header:KOLOM_TEMPLATE});
+  ws['!cols'] = KOLOM_TEMPLATE.map(()=>({wch:22}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Data Penduduk');
+  XLSX.writeFile(wb, 'template-data-penduduk.xlsx');
+}
+
+function normalisasiHeader(h){
+  return String(h||'').trim().toLowerCase();
+}
+function excelSerialKeISO(nilai){
+  // Menangani tanggal yang datang sebagai objek Date (cellDates:true) atau teks
+  if(nilai instanceof Date && !isNaN(nilai)){
+    const y=nilai.getFullYear(), m=String(nilai.getMonth()+1).padStart(2,'0'), d=String(nilai.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  const teks = String(nilai||'').trim();
+  // Format YYYY-MM-DD sudah benar
+  if(/^\d{4}-\d{2}-\d{2}$/.test(teks)) return teks;
+  // Format DD/MM/YYYY atau DD-MM-YYYY
+  const cocok = teks.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(cocok) return `${cocok[3]}-${cocok[2].padStart(2,'0')}-${cocok[1].padStart(2,'0')}`;
+  return teks; // biarkan apa adanya bila format tak dikenali
+}
+
+function imporExcel(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const wb = XLSX.read(e.target.result, {type:'array', cellDates:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const baris = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      prosesBarisImpor(baris);
+    }catch(err){
+      tampilkanRingkasanImpor(`Gagal membaca file: file rusak atau bukan format Excel/CSV yang didukung.`, true);
+    }
+    input.value = ''; // agar file yang sama bisa dipilih lagi
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function prosesBarisImpor(baris){
+  let ditambah=0, diperbarui=0, dilewati=0;
+  const alasanDilewati=[];
+
+  baris.forEach((row, i)=>{
+    // petakan header apa pun ke field internal
+    const data={};
+    Object.keys(row).forEach(header=>{
+      const field = PEMETAAN_HEADER[normalisasiHeader(header)];
+      if(field) data[field]=row[header];
+    });
+
+    const nik = String(data.nik||'').trim().replace(/\D/g,'');
+    if(!/^\d{16}$/.test(nik)){
+      dilewati++; alasonBaris(i, 'NIK tidak valid (harus 16 digit)'); return;
+    }
+    const rekaman = {
+      nik,
+      nama: String(data.nama||'').trim(),
+      tempatLahir: String(data.tempatLahir||'').trim(),
+      tglLahir: excelSerialKeISO(data.tglLahir),
+      jk: /perempuan/i.test(data.jk||'') ? 'Perempuan' : 'Laki-laki',
+      pekerjaan: String(data.pekerjaan||'').trim(),
+      agama: String(data.agama||'').trim(),
+      status: String(data.status||'').trim() || 'Belum Kawin',
+      alamat: String(data.alamat||'').trim(),
+      ayah: String(data.ayah||'').trim(),
+      ibu: String(data.ibu||'').trim(),
+    };
+    if(!rekaman.nama){
+      dilewati++; alasonBaris(i, 'Nama kosong'); return;
+    }
+
+    const idxAda = daftarPenduduk.findIndex(p=>p.nik===nik);
+    if(idxAda>=0){ daftarPenduduk[idxAda]=rekaman; diperbarui++; }
+    else{ daftarPenduduk.push(rekaman); ditambah++; }
+  });
+
+  function alasonBaris(i, alasan){ alasanDilewati.push(`Baris ${i+2}: ${alasan}`); }
+
+  simpanPendudukKeStorage(daftarPenduduk);
+  renderTabelPenduduk();
+
+  let pesan = `Impor selesai — ${ditambah} data baru ditambahkan, ${diperbarui} data diperbarui`;
+  if(dilewati>0) pesan += `, ${dilewati} baris dilewati.`; else pesan += '.';
+  if(alasanDilewati.length){
+    pesan += `<br><span style="font-size:12px;">${alasanDilewati.slice(0,8).join('<br>')}${alasanDilewati.length>8? '<br>…dan lainnya':''}</span>`;
+  }
+  tampilkanRingkasanImpor(pesan, dilewati>0 && ditambah===0 && diperbarui===0);
+}
+
+function tampilkanRingkasanImpor(html, gagal){
+  const kotak = document.getElementById('ringkasanImpor');
+  kotak.style.display='block';
+  kotak.style.background = gagal ? '#FDF1F0' : '#F6FBF8';
+  kotak.style.border = gagal ? '1px solid #E3B3AE' : '1px solid var(--hijau-muda)';
+  kotak.style.color = gagal ? 'var(--merah-cap)' : 'var(--tinta)';
+  kotak.innerHTML = html;
+}
+
+/* =============================================================
+   LAYANAN WARGA — CARI NIK
+============================================================= */
+function cariNIK(){
+  const nik = document.getElementById('inputNIK').value.trim();
+  const kartu = document.getElementById('kartuWarga');
+  const pesanGagal = document.getElementById('pesanGagalNIK');
+  const panelSurat = document.getElementById('panelPilihSurat');
+  if(!/^\d{16}$/.test(nik)){
+    alert('Masukkan NIK yang benar (16 digit angka).');
+    return;
+  }
+  const p = daftarPenduduk.find(x=>x.nik===nik);
+  if(!p){
+    kartu.classList.remove('tampil');
+    panelSurat.style.display='none';
+    pesanGagal.classList.add('tampil');
+    wargaTerpilih = null;
+    return;
+  }
+  pesanGagal.classList.remove('tampil');
+  wargaTerpilih = p;
+  kartu.innerHTML = `
+    <div class="baris"><div class="k">Nama</div><div class="v">${p.nama}</div></div>
+    <div class="baris"><div class="k">NIK</div><div class="v">${p.nik}</div></div>
+    <div class="baris"><div class="k">Tempat, Tgl Lahir</div><div class="v">${p.tempatLahir}, ${formatTanggal(p.tglLahir)}</div></div>
+    <div class="baris"><div class="k">Jenis Kelamin</div><div class="v">${p.jk}</div></div>
+    <div class="baris"><div class="k">Pekerjaan</div><div class="v">${p.pekerjaan||'-'}</div></div>
+    <div class="baris"><div class="k">Alamat</div><div class="v">${p.alamat}</div></div>
+  `;
+  kartu.classList.add('tampil');
+  panelSurat.style.display='block';
+  document.getElementById('pilihJenisSurat').value='';
+  document.getElementById('fieldTambahan').innerHTML='';
+}
+
+/* =============================================================
+   TEMPLATE SURAT — konfigurasi field tambahan per jenis
+============================================================= */
+const templateSurat = {
+  domisili: {
+    judul:'Surat Keterangan Domisili', kodeKlasifikasi:'470',
+    fields:[{id:'keperluan', label:'Keperluan', type:'text', placeholder:'cth: Pengajuan pembukaan rekening bank'}],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, menerangkan dengan sesungguhnya bahwa:</p>
+      ${tabelDataWarga(p)}
+      <p>adalah benar warga yang berdomisili/bertempat tinggal di alamat tersebut di atas dan berdasarkan data yang ada pada kami, yang bersangkutan berkelakuan baik selama tinggal di wilayah ${settings.namaDesa}.</p>
+      <p>Surat keterangan ini dibuat untuk keperluan: <strong>${e.keperluan||'-'}</strong>.</p>`
+  },
+  usaha:{
+    judul:'Surat Keterangan Usaha', kodeKlasifikasi:'510',
+    fields:[
+      {id:'namaUsaha', label:'Nama Usaha', type:'text'},
+      {id:'jenisUsaha', label:'Jenis/Bidang Usaha', type:'text'},
+      {id:'alamatUsaha', label:'Alamat Usaha', type:'text'},
+      {id:'keperluan', label:'Keperluan', type:'text', placeholder:'cth: Pengajuan izin usaha / pinjaman modal'}
+    ],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, menerangkan dengan sesungguhnya bahwa:</p>
+      ${tabelDataWarga(p)}
+      <p>benar-benar menjalankan usaha dengan keterangan sebagai berikut:</p>
+      <table class="tabel-data"><tr><td class="label">Nama Usaha</td><td class="titik">:</td><td>${e.namaUsaha||'-'}</td></tr>
+      <tr><td class="label">Jenis Usaha</td><td class="titik">:</td><td>${e.jenisUsaha||'-'}</td></tr>
+      <tr><td class="label">Alamat Usaha</td><td class="titik">:</td><td>${e.alamatUsaha||'-'}</td></tr></table>
+      <p>Surat keterangan ini dibuat untuk keperluan: <strong>${e.keperluan||'-'}</strong>.</p>`
+  },
+  tidak_mampu:{
+    judul:'Surat Keterangan Tidak Mampu', kodeKlasifikasi:'400',
+    fields:[{id:'keperluan', label:'Keperluan', type:'text', placeholder:'cth: Pengajuan bantuan pendidikan / kesehatan'}],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, menerangkan dengan sesungguhnya bahwa:</p>
+      ${tabelDataWarga(p)}
+      <p>adalah benar warga ${settings.namaDesa} yang termasuk dalam kategori keluarga kurang mampu, berdasarkan data dan pengamatan yang ada pada kami.</p>
+      <p>Surat keterangan ini dibuat untuk keperluan: <strong>${e.keperluan||'-'}</strong>.</p>`
+  },
+  pengantar:{
+    judul:'Surat Pengantar', kodeKlasifikasi:'145',
+    fields:[
+      {id:'tujuanSurat', label:'Jenis Pengurusan', type:'select', options:['Pembuatan KTP','Pembuatan Kartu Keluarga (KK)','Pembuatan SKCK','Pengantar Nikah','Lainnya']},
+      {id:'instansiTujuan', label:'Ditujukan Kepada (instansi)', type:'text', placeholder:'cth: Kantor Kecamatan / Polsek setempat'},
+      {id:'keterangan', label:'Keterangan Tambahan', type:'textarea'}
+    ],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, dengan ini memberikan surat pengantar kepada:</p>
+      ${tabelDataWarga(p)}
+      <p>Untuk keperluan <strong>${e.tujuanSurat||'-'}</strong>, mohon kiranya Bapak/Ibu/Pimpinan ${e.instansiTujuan||'yang berwenang'} dapat memproses permohonan yang bersangkutan.</p>
+      ${e.keterangan? `<p>Keterangan tambahan: ${e.keterangan}</p>`:''}`
+  },
+  kelahiran:{
+    judul:'Surat Keterangan Kelahiran', kodeKlasifikasi:'474',
+    fields:[
+      {id:'namaAnak', label:'Nama Anak', type:'text'},
+      {id:'tempatLahirAnak', label:'Tempat Lahir Anak', type:'text'},
+      {id:'tglLahirAnak', label:'Tanggal Lahir Anak', type:'date'},
+      {id:'jkAnak', label:'Jenis Kelamin Anak', type:'select', options:['Laki-laki','Perempuan']}
+    ],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, menerangkan bahwa pasangan suami-istri:</p>
+      ${tabelDataWarga(p)}
+      <p>benar telah lahir seorang anak dengan keterangan sebagai berikut:</p>
+      <table class="tabel-data"><tr><td class="label">Nama Anak</td><td class="titik">:</td><td>${e.namaAnak||'-'}</td></tr>
+      <tr><td class="label">Tempat Lahir</td><td class="titik">:</td><td>${e.tempatLahirAnak||'-'}</td></tr>
+      <tr><td class="label">Tanggal Lahir</td><td class="titik">:</td><td>${formatTanggal(e.tglLahirAnak)}</td></tr>
+      <tr><td class="label">Jenis Kelamin</td><td class="titik">:</td><td>${e.jkAnak||'-'}</td></tr></table>
+      <p>Demikian surat keterangan ini dibuat untuk digunakan sebagaimana mestinya, termasuk untuk keperluan pencatatan akta kelahiran di Dinas Kependudukan dan Catatan Sipil.</p>`
+  },
+  kematian:{
+    judul:'Surat Keterangan Kematian', kodeKlasifikasi:'474',
+    fields:[
+      {id:'tglMeninggal', label:'Tanggal Meninggal', type:'date'},
+      {id:'tempatMeninggal', label:'Tempat Meninggal', type:'text'},
+      {id:'sebabMeninggal', label:'Sebab Meninggal', type:'text'}
+    ],
+    isi:(p,e)=>`
+      <p>Yang bertanda tangan di bawah ini ${settings.jabatanKades} ${settings.namaDesa}, menerangkan dengan sesungguhnya bahwa:</p>
+      ${tabelDataWarga(p)}
+      <p>telah meninggal dunia pada:</p>
+      <table class="tabel-data"><tr><td class="label">Tanggal Meninggal</td><td class="titik">:</td><td>${formatTanggal(e.tglMeninggal)}</td></tr>
+      <tr><td class="label">Tempat Meninggal</td><td class="titik">:</td><td>${e.tempatMeninggal||'-'}</td></tr>
+      <tr><td class="label">Sebab Meninggal</td><td class="titik">:</td><td>${e.sebabMeninggal||'-'}</td></tr></table>
+      <p>Demikian surat keterangan ini dibuat untuk digunakan sebagaimana mestinya, termasuk untuk keperluan pengurusan akta kematian.</p>`
+  }
+};
+
+function tabelDataWarga(p){
+  return `<table class="tabel-data">
+    <tr><td class="label">Nama</td><td class="titik">:</td><td>${p.nama}</td></tr>
+    <tr><td class="label">NIK</td><td class="titik">:</td><td>${p.nik}</td></tr>
+    <tr><td class="label">Tempat, Tgl Lahir</td><td class="titik">:</td><td>${p.tempatLahir}, ${formatTanggal(p.tglLahir)}</td></tr>
+    <tr><td class="label">Jenis Kelamin</td><td class="titik">:</td><td>${p.jk}</td></tr>
+    <tr><td class="label">Agama</td><td class="titik">:</td><td>${p.agama||'-'}</td></tr>
+    <tr><td class="label">Pekerjaan</td><td class="titik">:</td><td>${p.pekerjaan||'-'}</td></tr>
+    <tr><td class="label">Alamat</td><td class="titik">:</td><td>${p.alamat}</td></tr>
+  </table>`;
+}
+
+function renderFieldTambahan(){
+  const key = document.getElementById('pilihJenisSurat').value;
+  const wrap = document.getElementById('fieldTambahan');
+  wrap.innerHTML='';
+  if(!key) return;
+  templateSurat[key].fields.forEach(f=>{
+    const div = document.createElement('div');
+    div.className='field';
+    let inner='';
+    if(f.type==='select'){
+      inner = `<select id="tf_${f.id}">${f.options.map(o=>`<option>${o}</option>`).join('')}</select>`;
+    } else if(f.type==='textarea'){
+      inner = `<textarea id="tf_${f.id}" placeholder="${f.placeholder||''}"></textarea>`;
+    } else {
+      inner = `<input type="${f.type}" id="tf_${f.id}" placeholder="${f.placeholder||''}">`;
+    }
+    div.innerHTML = `<label>${f.label}</label>${inner}`;
+    wrap.appendChild(div);
+  });
+}
+
+/* =============================================================
+   GENERATE SURAT
+============================================================= */
+function bulanRomawi(bln){
+  return ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][bln];
+}
+function formatTanggal(iso){
+  if(!iso) return '-';
+  const bln = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const d = new Date(iso+'T00:00:00');
+  if(isNaN(d)) return iso;
+  return `${d.getDate()} ${bln[d.getMonth()]} ${d.getFullYear()}`;
+}
+function nomorSuratBerikutnya(kode){
+  const now = new Date();
+  const nomor = `${kode}/${String(settings.nomorUrut).padStart(3,'0')}/${settings.kodeDesa}/${bulanRomawi(now.getMonth())}/${now.getFullYear()}`;
+  settings.nomorUrut += 1;
+  simpanSettingsKeStorage(settings);
+  return nomor;
+}
+
+function buatSurat(){
+  const key = document.getElementById('pilihJenisSurat').value;
+  if(!key){ alert('Pilih jenis surat terlebih dahulu.'); return; }
+  if(!wargaTerpilih){ alert('Data warga belum ditemukan.'); return; }
+  const tmpl = templateSurat[key];
+  const extra = {};
+  tmpl.fields.forEach(f=> extra[f.id] = document.getElementById('tf_'+f.id).value.trim());
+
+  const nomor = nomorSuratBerikutnya(tmpl.kodeKlasifikasi);
+  const now = new Date();
+  const tanggalSurat = formatTanggal(now.toISOString().slice(0,10));
+
+  const kertas = document.getElementById('kertas-surat');
+  kertas.innerHTML = `
+    <div class="kop-surat">
+      <div class="logo-desa">${settings.logoDesa? `<img src="${settings.logoDesa}">` : ''}</div>
+      <div class="teks-kop">
+        <div class="p1">Pemerintah Kabupaten ${settings.kabupaten}</div>
+        <div class="p2">Kecamatan ${settings.kecamatan}</div>
+        <div class="p3">${settings.namaDesa}</div>
+        <div class="p4">${settings.alamatKantor}</div>
+      </div>
+    </div>
+    <div class="judul-surat">
+      <div class="j1">${tmpl.judul}</div>
+      <div class="j2">Nomor: ${nomor}</div>
+    </div>
+    <div class="isi-surat">
+      ${tmpl.isi(wargaTerpilih, extra)}
+      <p>Demikian surat keterangan ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
+    </div>
+    <div class="blok-ttd">
+      <div class="kolom">
+        <div class="tempat-tgl">${settings.namaDesa}, ${tanggalSurat}</div>
+        <div class="jabatan">${settings.jabatanKades},</div>
+        <div class="area-ttd">
+          ${settings.capDesa? `<img class="cap" src="${settings.capDesa}">` : ''}
+          ${settings.ttdKades? `<img class="ttd" src="${settings.ttdKades}">` : ''}
+        </div>
+        <div class="nama-ttd">${settings.namaKades}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('overlay-surat').classList.add('tampil');
+}
+function tutupSurat(){ document.getElementById('overlay-surat').classList.remove('tampil'); }
+
+/* Inisialisasi tampilan pertama kali */
+renderFieldTambahan();
+</script>
+</body>
+</html>
